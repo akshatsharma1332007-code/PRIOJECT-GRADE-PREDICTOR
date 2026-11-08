@@ -7,10 +7,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 print("Libraries imported successfully.") 
 
 # Loading dataset
@@ -53,23 +53,30 @@ plt.savefig("correlation_heatmap.png")
 
 #prepare the data
 x = df[["study_hours", "attendance_pct", "prev_score", "sleep_hours"]]
-y = df[["final_grade"]]
+y = df["final_grade"]
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state= 42)
 print(f"{len(x_train)} training samples and {len(x_test)} testing samples.")
+
+def evaluate(name, model, pred):
+    rmse = np.sqrt(mean_squared_error(y_test, pred))
+    mae = mean_absolute_error(y_test, pred)
+    r2 = r2_score(y_test, pred)
+    cv = cross_val_score(model, x, y, cv=5, scoring="r2")
+    print(f"{name} | RMSE: {rmse:.2f} | MAE: {mae:.2f} | R2: {r2:.2f} | 5-fold CV R2: {cv.mean():.2f} (+/- {cv.std():.2f})")
 
 # Train the models
 lr = LinearRegression()
 lr.fit(x_train, y_train)
 lr_pred = lr.predict(x_test)
 print("\n Trained linear regression model.")
-print(f"MAE: {mean_squared_error(y_test, lr_pred):.2f}, R2: {r2_score(y_test, lr_pred):.2f}")
+evaluate("Linear Regression", lr, lr_pred)
 
 #Random Forest Regressor
 rf = RandomForestRegressor(n_estimators=100, random_state=42)
 rf.fit(x_train, y_train)
 rf_pred = rf.predict(x_test)
 print("\n Trained random forest regressor model.")
-print(f"MAE: {mean_squared_error(y_test, rf_pred):.2f}, R2: {r2_score(y_test, rf_pred):.2f}")
+evaluate("Random Forest", rf, rf_pred)
 
 #Feature importance chart
 features = ["study_hours", "attendance_pct", "prev_score", "sleep_hours"]
